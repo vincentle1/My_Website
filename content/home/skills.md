@@ -18,18 +18,18 @@ subtitle = ""
   icon = "r-project"
   icon_pack = "fab"
   name = "R"
-  description = "90%"
+  description = "I am proficient in data-cleaning, plotting and running basic statistical analyses in R."
   
 [[feature]]
   icon = "chart-line"
   icon_pack = "fas"
-  name = "Statistics"
-  description = "100%"  
+  name = "Statistics and Research Design"
+  description = "I have a firm grasp of statistics pertaining to psychological research, and a solid understanding of research design principles."  
   
 [[feature]]
-  icon = "camera-retro"
+  icon = "code"
   icon_pack = "fas"
-  name = "Photography"
-  description = "10%"
+  name = "HTML, CSS"
+  description = "I have working knowledge of HTML and CSS."
 
 +++
