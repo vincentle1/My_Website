@@ -21,9 +21,10 @@ organizations:
 #bio: My research interests include distributed robotics, mobile computing and programmable matter.
 
 interests:
-- Design
 - Psychology
 - Programming
+- Design
+- Communication
 
 education:
   courses:
@@ -59,6 +60,6 @@ user_groups:
 - Visitors
 ---
 
-  I am an aspiring UX and psychology researcher from Los Angeles, California. I am interested in design, psychology and programming.
+  Hello! I am an aspiring psychology researcher from Los Angeles, California.
 
   **To see my full CV in pdf form, click the CV button under my picture.**
