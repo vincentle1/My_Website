@@ -1,0 +1,203 @@
+---
+title: 'Violent Video Games: A Simple Data Analysis'
+author: Vincent Le
+date: '2020-04-01'
+slug: violent-video-games-a-simple-data-analysis
+categories:
+  - psychology
+tags:
+  - video games
+  - violent
+  - data
+  - science
+  - statistics
+  - regression
+  - R
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2020-04-01T17:28:17-07:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+{{% toc %}} 
+**Note: All source code and full functions can be found on this Github repo.**
+
+## Introduction 
+Hello everyone! In the last post, I explored the [existing literature](https://vincentle1.netlify.com/post/violent-video-games-literature-review/) on violent video games and violent crime. Well, I decided to run a simple regression with violent video game sales as the independent variable, and violent crime as the dependent variable. In this post, I'll show you what I found.
+
+## Gathering and Tidying the Data
+
+Before I share the results, let me walk you through how I collected and cleaned the data.
+
+First, where did I get the data?
+
+For violent video games, I used https://www.vgchartz.com/, which had tables that listed the 100 top-selling video games in the United States by year and genre. I decided to only include games from the action, shooter and fighting genre, in order to really make sure I was exploring violent video games and not video games in general. 
+
+For violent crime, I used a table from the [Uniform Crime Reporting Program](https://www.fbi.gov/services/cjis/ucr), a website maintained by the FBI. Violent crime is defined by the FBI as murder/manslaughter, rape, robbery and aggravated assault.
+
+Now, here's how I compiled and cleaned everything.
+
+1. First, I wrote a webscraper function that automatically pulled the video game sale tables off of https://www.vgchartz.com/, and then filtered them by genre. It allowed me to pull a table from any year I wanted and put that into an R dataframe. Because I'm really proud of it, here's the whole thing below!
+
+
+```{r echo=TRUE}
+library(rvest)
+library(stringr)
+library(tidyverse)
+
+vg_scraper <- function(year){
+#Scrape the chart
+url <- paste("https://www.vgchartz.com/yearly/", year, "/USA/", sep = "") 
+
+# read_html() finds the
+# html_nodes finds the full element containing the table.
+
+vg_list <- url %>%
+  read_html() %>%
+#html_nodes finds the table by CSS selector.
+  html_nodes('#chart_body > table') %>%
+#html_table puts it into a list of tables.
+  html_table(fill = TRUE)
+
+#This extracts the table into a final dataframe we can work with.
+vg_dataframe <- vg_list[[1]]
+
+##Clean up the chart
+
+#1. Select columns
+vg_dataframe <- vg_dataframe[c(2, 8)]
+
+#2. Rename columns
+names(vg_dataframe)[2] <- "Yearly_Sales"
+
+#3. Remove all rows with NA
+vg_dataframe <- vg_dataframe %>%
+  filter(!is.na(vg_dataframe$Yearly_Sales))
+
+#4. Remove commas from Yearly_Sales using gsub and convert to numeric
+vg_dataframe$Yearly_Sales <- as.numeric(gsub(",", "", vg_dataframe$Yearly_Sales))
+
+#5. Filter by genre. Action, shooter and fighting
+vg_dataframe <- vg_dataframe %>%
+  filter(str_detect(Game, "Action|Shooter|Fighting" ))
+
+#6. Return dataframe
+vg_dataframe
+}
+```
+
+Here's some sample output from this function. Say I wanted the video game sale data from 2015. I could just type vg_scraper(2015) and get:
+
+```{r echo=TRUE}
+vg_scraper(2015)
+```
+
+2. I then wrote another function that used this vg_scraper function to combine all the video game sales from 2005-2018 into one simple dataframe. Here's the output.
+
+```{r echo=FALSE}
+vvg_sum <- function(){
+final_data <- data.frame(year = integer(0), sum_year_sale = double(0))
+for (val in c(2005:2018)){
+  a <- vg_scraper(val)
+  sum_yr <- a %>%
+    summarize(sum_year_sale = sum(Yearly_Sales)) %>%
+    mutate(year = val) %>%
+    select(year, sum_year_sale)
+  final_data <- rbind(final_data, sum_yr)
+}
+final_data <- final_data %>%
+  mutate_at(1, as.factor)
+final_data
+}
+
+vvg_data <- vvg_sum()
+vvg_data
+```
+
+3. After this, I wrote a similar cleaner function to tidy the FBI data.
+
+
+4. Lastly, I wrote a function that merged the FBI data with the final output of the video game data. Here's the final data frame. The sum_year_sale is video game sales, violent_crime_abs is total violent crime, violent_crime_rate is violent crime per 100,000 people.
+  
+```{r include=FALSE}
+library(readxl)
+
+####### FBI Violent Crime Data ###########################################################
+violent_crime <- read_excel("/home/vincentle/Violent Videogame Project/FBI Tables/violent_crime.xls")
+
+###### Clean Violent Crime Data ########################
+
+#Choose rows
+violent_crime <- violent_crime[3:23, ]
+
+#Change headers
+names(violent_crime) <- violent_crime[1, ]
+
+#Delete first row
+violent_crime <- violent_crime[-1, ]
+
+#Select desired columns and filter desired rows, then change 20176 to 2017
+violent_crime <- violent_crime[7:20 ,1:4]
+violent_crime[13,1] <- 2017
+
+#Convert columns to desired types, rename column properly, clean up final
+violent_crime <- violent_crime %>%
+  mutate_at(c(2:4), as.double) %>%
+  mutate_at(1, as.factor) %>%
+  rename(year = Year)
+
+```
+```{r echo=FALSE}
+vvg_fbi <- vvg_data %>% 
+  inner_join(violent_crime)
+
+##### Rename columns to take out spaces #####
+
+names(vvg_fbi)[3] <- 'population'
+names(vvg_fbi)[4] <- 'violent_crime_abs'
+names(vvg_fbi)[5] <- 'violent_crime_rate'
+
+vvg_fbi
+```
+
+## Analysis
+
+Okay, on to the fun stuff! 
+
+1. I first plotted the data with violent crime rate (per 100,000 people) on the y-axis and annual violent video game sales (per 100,000 people) on the x-axis.
+
+
+```{r echo=FALSE}
+vvg_fbi <- vvg_fbi %>%
+  mutate(sum_year_rate = (sum_year_sale * 100000)/population)
+
+ggplot(data = vvg_fbi, aes(x = sum_year_rate, y = violent_crime_rate)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE)
+```
+
+Well well well. Looks like a negative correlation to me! And indeed it was. 
+
+```{r echo=FALSE}
+cor(vvg_fbi$sum_year_rate, vvg_fbi$violent_crime_rate)
+```
+
+So as violent video game sales went up per year, the violent crime rate went down.
+
+2. Now the question remained: Would this regression line be statistically significant? I ran a classic OLS regression model, and here's the output.
+
+```{r echo=TRUE}
+model <- lm(violent_crime_rate ~ sum_year_rate, vvg_fbi)
+summary(model)
+```
+
+The adjusted R-Squared was 0.673, meaning the model explained 67.3% of the variation. The F-statistic, a ratio of signal to noise, was large and significant (meaning there was much more signal in the model than noise).
+
+While this is a highly simplistic model, we can probably conclude that violent video games do not significantly contribute to violent crime.
+
+Ta-da!
