@@ -25,7 +25,7 @@ image:
 projects: []
 ---
 {{% toc %}} 
-**Note: All source code and full functions can be found on this Github repo.**
+**Note: All source code and full functions can be found on [this Github repo](https://github.com/vincentle1/Violent-Video-Game-Data-Analysis).**
 
 ## Introduction 
 Hello everyone! In the last post, I explored the [existing literature](https://vincentle1.netlify.com/post/violent-video-games-literature-review/) on violent video games and violent crime. Well, I decided to run a simple regression with violent video game sales as the independent variable, and violent crime as the dependent variable. In this post, I'll show you what I found.
